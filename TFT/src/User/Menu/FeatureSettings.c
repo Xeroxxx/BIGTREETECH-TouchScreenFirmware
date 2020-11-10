@@ -122,26 +122,9 @@ LISTITEM settingPage[SKEY_COUNT] = {
 
 void menuResetSettings(void)
 {
-  uint16_t key_num = IDLE_TOUCH;
-  popupDrawPage(bottomDoubleBtn, textSelect(LABEL_WARNING), textSelect(LABEL_RESET_SETTINGS), textSelect(LABEL_CONFIRM), textSelect(LABEL_CANNEL));
-  while(infoMenu.menu[infoMenu.cur] == menuResetSettings)
-  {
-    key_num = KEY_GetValue(2, doubleBtnRect);
-    switch(key_num)
-    {
-      case KEY_POPUP_CONFIRM:
-        infoSettingsReset();
-        storePara();
-        infoMenu.cur--;       // Just go back to the previos view
-        popupReminder(textSelect(LABEL_INFO), textSelect(LABEL_RESET_SETTINGS_DONE));
-        break;
-
-      case KEY_POPUP_CANCEL:
-        infoMenu.cur--;  // Just go back to the previos view
-        break;
-    }
-    loopProcess();
-  }
+  infoSettingsReset();
+  storePara();
+  popupReminder(DIALOG_TYPE_SUCCESS, LABEL_INFO, LABEL_RESET_SETTINGS_DONE);
 }
 
 //
@@ -256,16 +239,19 @@ void updateFeatureSettings(uint8_t key_val)
     #endif
 
     case SKEY_RESET_SETTINGS:
-      infoMenu.menu[++infoMenu.cur] = menuResetSettings;
-
-      menuDrawListItem(&featureSettingsItems.items[key_val], key_val);
+      setDialogText(LABEL_SETTING_RESET, LABEL_RESET_SETTINGS_INFO, LABEL_CONFIRM, LABEL_CANCEL);
+      showDialog(DIALOG_TYPE_ALERT, resetSettings,NULL,NULL);
       break;
 
     #ifdef LCD_LED_PWM_CHANNEL
       case SKEY_LCD_BRIGHTNESS:
         infoSettings.lcd_brightness = (infoSettings.lcd_brightness + 1) % ITEM_BRIGHTNESS_NUM;
-        settingPage[item_index].valueLabel = itemBrightness[infoSettings.lcd_brightness];
-        featureSettingsItems.items[key_val] = settingPage[item_index];
+        if(infoSettings.lcd_brightness == 0)
+          infoSettings.lcd_brightness = 1; //In Normal it should not be off. Set back to 5%
+
+        char tempstr[8];
+        sprintf(tempstr, (char *)textSelect(LABEL_PERCENT_VALUE), LCD_BRIGHTNESS[infoSettings.lcd_brightness]);
+        setDynamicTextValue(key_val, tempstr);
         Set_LCD_Brightness(LCD_BRIGHTNESS[infoSettings.lcd_brightness]);
 
         menuDrawListItem(&featureSettingsItems.items[key_val], key_val);

@@ -43,17 +43,28 @@ void Hardware_GenericInit(void)
   #endif
 
   XPT2046_Init();
+  OS_TimerInitMs();         // System clock timer, cycle 1ms, called after XPT2046_Init()
   W25Qxx_Init();
   LCD_Init();
-  readStoredPara();
-  LCD_RefreshDirection();  //refresh display direction after reading settings
-  scanUpdates();
-  #ifndef MKS_32_V1_4
+  readStoredPara();         // Read settings parameter
+  LCD_RefreshDirection();   // refresh display direction after reading settings
+  scanUpdates();            // scan icon, fonts and config files
+  checkflashSign();         // check font/icon/config signature in SPI flash for update
+  initMachineSetting();     // load default machine settings
+
+  #ifdef LED_COLOR_PIN
+    knob_LED_Init();
+  #endif
+
+  #if !defined(MKS_32_V1_4)
     //causes hang if we deinit spi1
     SD_DeInit();
   #endif
   #if LCD_ENCODER_SUPPORT
     LCD_EncoderInit();
+  #endif
+  #if ENC_ACTIVE_SIGNAL
+    HW_EncActiveSignalInit();
   #endif
 
   #ifdef PS_ON_PIN
@@ -78,11 +89,17 @@ void Hardware_GenericInit(void)
     TSC_Calibration();
     storePara();
   }
+  else if (readIsRestored())
+  {
+    storePara();
+  }
+
   #ifdef LCD_LED_PWM_CHANNEL
     Set_LCD_Brightness(LCD_BRIGHTNESS[infoSettings.lcd_brightness]);
   #endif
   GUI_RestoreColorDefault();
   infoMenuSelect();
+  fanControlInit();
 }
 
 int main(void)
